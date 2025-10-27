@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Dashboard</h1>
+            <p class="text-muted mb-0">Bem-vindo de volta, {{ user.first_name|default:user.username }}!</p>
+        </div>
+        <div>
+            <span class="badge bg-primary fs-6">
+                <i class="bi bi-person-badge me-1"></i>
+                {{ user.get_role_display }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-0 h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Módulos Disponíveis
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                <span id="totalModules">{{ total_modules|default:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-collection display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-0 h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Treinamentos Concluídos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                <span id="completedTrainings">{{ completed_trainings|default:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-check-circle display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-0 h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Progresso Geral
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                <span id="overallProgress">{{ overall_progress|default:0 }}%</span>
+                            </div>
+                            <div class="progress progress-bar-custom mt-2">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ overall_progress|default:0 }}%"></div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-up display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-0 h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Certificados Obtidos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                <span id="totalCertificates">{{ certificates|default:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-award display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Atividade Recente
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshActivity()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="recentActivity">
+                        {% if recent_progress %}
+                            {% for progress in recent_progress %}
+                            <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                                <div class="me-3">
+                                    {% if progress.completed %}
+                                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                    {% else %}
+                                        <i class="bi bi-play-circle text-primary fs-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ progress.video.title }}</h6>
+                                    <p class="text-muted mb-1 small">
+                                        {{ progress.video.training.title }} - {{ progress.video.training.module.title }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if progress.completed %}
+                                            Concluído em {{ progress.updated_at|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            Progresso: {{ progress.progress_percentage }}% - {{ progress.updated_at|date:"d/m/Y H:i" }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'core:video_detail' progress.video.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        {% if progress.completed %}
+                                            <i class="bi bi-eye me-1"></i>Revisar
+                                        {% else %}
+                                            <i class="bi bi-play me-1"></i>Continuar
+                                        {% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-clock-history text-muted" style="font-size: 3rem;"></i>
+                            <h6 class="text-muted mt-3">Nenhuma atividade recente</h6>
+                            <p class="text-muted">Comece assistindo alguns vídeos para ver sua atividade aqui.</p>
+                            <a href="{% url 'core:modules_list' %}" class="btn btn-primary">
+                                <i class="bi bi-play-circle me-2"></i>Explorar Módulos
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Progress -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>
+                        Ações Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'core:modules_list' %}" class="btn btn-primary">
+                            <i class="bi bi-collection me-2"></i>
+                            Explorar Módulos
+                        </a>
+                        <a href="{% url 'core:certificates' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-award me-2"></i>
+                            Meus Certificados
+                        </a>
+                        <a href="{% url 'core:profile' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-person me-2"></i>
+                            Editar Perfil
+                        </a>
+                        <a href="{% url 'core:faq' %}" class="btn btn-outline-info">
+                            <i class="bi bi-question-circle me-2"></i>
+                            Ajuda & FAQ
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Summary -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Resumo do Progresso
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if module_progress %}
+                        {% for module in module_progress %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0">{{ module.title|truncatechars:25 }}</h6>
+                                <small class="text-muted">{{ module.progress_percentage }}%</small>
+                            </div>
+                            <div class="progress progress-bar-custom">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ module.progress_percentage }}%"></div>
+                            </div>
+                            <small class="text-muted">
+                                {{ module.completed_trainings }}/{{ module.total_trainings }} treinamentos
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-graph-up text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2 mb-0">Nenhum progresso ainda</p>
+                        <small class="text-muted">Comece um módulo para ver seu progresso</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Certificates -->
+    {% if recent_certificates %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-award me-2"></i>
+                            Certificados Recentes
+                        </h5>
+                        <a href="{% url 'core:certificates' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for certificate in recent_certificates %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card certificate-card border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-award display-6 mb-3"></i>
+                                    <h6 class="card-title">{{ certificate.training.title }}</h6>
+                                    <p class="card-text small">
+                                        {{ certificate.training.module.title }}
+                                    </p>
+                                    <small class="opacity-75">
+                                        Obtido em {{ certificate.issued_at|date:"d/m/Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate statistics counters
+    animateCounters();
+    
+    // Animate progress bars
+    animateProgressBars();
+    
+    // Load dashboard data
+    loadDashboardStats();
+});
+
+function animateCounters() {
+    const counters = [
+        { element: 'totalModules', target: {{ total_modules|default:0 }} },
+        { element: 'completedTrainings', target: {{ completed_trainings|default:0 }} },
+        { element: 'overallProgress', target: {{ overall_progress|default:0 }} },
+        { element: 'totalCertificates', target: {{ certificates|default:0 }} }
+    ];
+    
+    counters.forEach(counter => {
+        const element = document.getElementById(counter.element);
+        if (element) {
+            animateCounter(element, counter.target);
+        }
+    });
+}
+
+function animateCounter(element, target) {
+    let current = 0;
+    const increment = target / 50;
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        element.textContent = Math.floor(current);
+    }, 20);
+}
+
+function animateProgressBars() {
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach((bar, index) => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = 'width 1s ease-in-out';
+            bar.style.width = width;
+        }, 200 + (index * 100));
+    });
+}
+
+function loadDashboardStats() {
+    // This would typically load real-time stats via AJAX
+    // For now, we'll just show a loading state briefly
+    console.log('Dashboard stats loaded');
+}
+
+function refreshActivity() {
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    // Add spinning animation
+    icon.classList.add('fa-spin');
+    button.disabled = true;
+    
+    // Simulate refresh
+    setTimeout(() => {
+        icon.classList.remove('fa-spin');
+        button.disabled = false;
+        showToast('Atividade atualizada!', 'success');
+    }, 1000);
+}
+
+// Auto-refresh dashboard every 5 minutes
+setInterval(() => {
+    loadDashboardStats();
+}, 300000);
+</script>
+{% endblock %}

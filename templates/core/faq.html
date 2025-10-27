@@ -1,0 +1,576 @@
+{% extends 'base.html' %}
+
+{% block title %}FAQ - Perguntas Frequentes - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'core:home' %}">
+                    <i class="bi bi-house-door me-1"></i>
+                    Início
+                </a>
+            </li>
+            <li class="breadcrumb-item active">FAQ</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+        <h1 class="h2 mb-3">
+            <i class="bi bi-question-circle text-primary me-2"></i>
+            Perguntas Frequentes
+        </h1>
+        <p class="lead text-muted">
+            Encontre respostas para as dúvidas mais comuns sobre o SPS Training System
+        </p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" 
+                               id="faqSearch" placeholder="Digite sua dúvida aqui...">
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Sugestões: certificados, progresso, login, vídeos, módulos
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Categories -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <button class="btn btn-primary active" data-category="all" onclick="filterFAQ('all')">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>
+                    Todas
+                </button>
+                <button class="btn btn-outline-primary" data-category="account" onclick="filterFAQ('account')">
+                    <i class="bi bi-person me-1"></i>
+                    Conta
+                </button>
+                <button class="btn btn-outline-primary" data-category="courses" onclick="filterFAQ('courses')">
+                    <i class="bi bi-book me-1"></i>
+                    Cursos
+                </button>
+                <button class="btn btn-outline-primary" data-category="certificates" onclick="filterFAQ('certificates')">
+                    <i class="bi bi-award me-1"></i>
+                    Certificados
+                </button>
+                <button class="btn btn-outline-primary" data-category="technical" onclick="filterFAQ('technical')">
+                    <i class="bi bi-gear me-1"></i>
+                    Técnico
+                </button>
+                <button class="btn btn-outline-primary" data-category="payment" onclick="filterFAQ('payment')">
+                    <i class="bi bi-credit-card me-1"></i>
+                    Pagamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Content -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div id="faqAccordion" class="accordion">
+                <!-- FAQ items will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- No Results -->
+    <div id="noResults" class="text-center py-5 d-none">
+        <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+        <h4 class="text-muted mt-3">Nenhuma pergunta encontrada</h4>
+        <p class="text-muted">Tente usar palavras-chave diferentes ou navegue pelas categorias</p>
+    </div>
+
+    <!-- Contact Support -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-headset display-4 mb-3"></i>
+                    <h4>Não encontrou sua resposta?</h4>
+                    <p class="mb-3">
+                        Nossa equipe de suporte está pronta para ajudar você!
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                        <button class="btn btn-light" onclick="openSupportChat()">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Chat Online
+                        </button>
+                        <a href="mailto:suporte@spstraining.com" class="btn btn-outline-light">
+                            <i class="bi bi-envelope me-2"></i>
+                            Email
+                        </a>
+                        <a href="tel:+5511999999999" class="btn btn-outline-light">
+                            <i class="bi bi-telephone me-2"></i>
+                            Telefone
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Articles -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-10">
+            <h3 class="h4 mb-4 text-center">
+                <i class="bi bi-star text-warning me-2"></i>
+                Artigos Populares
+            </h3>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-play-circle text-primary me-2"></i>
+                                <h6 class="mb-0">Como assistir vídeos</h6>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                Aprenda a navegar pelo player de vídeo e acompanhar seu progresso.
+                            </p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-award text-warning me-2"></i>
+                                <h6 class="mb-0">Obtendo certificados</h6>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                Saiba como completar cursos e baixar seus certificados.
+                            </p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-person-gear text-info me-2"></i>
+                                <h6 class="mb-0">Gerenciar perfil</h6>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                Como atualizar suas informações pessoais e preferências.
+                            </p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Support Chat Modal -->
+<div class="modal fade" id="supportChatModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-headset me-2"></i>
+                    Suporte Online
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="chat-container" style="height: 400px; overflow-y: auto;">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="bi bi-robot"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="bg-light rounded p-3">
+                                    <p class="mb-0">
+                                        Olá! Sou o assistente virtual do SPS Training. 
+                                        Como posso ajudar você hoje?
+                                    </p>
+                                </div>
+                                <small class="text-muted">Agora</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-top pt-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="chatInput" 
+                               placeholder="Digite sua mensagem...">
+                        <button class="btn btn-primary" onclick="sendMessage()">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let faqData = [];
+let filteredFAQ = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadFAQData();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Search functionality
+    document.getElementById('faqSearch').addEventListener('input', searchFAQ);
+    
+    // Chat input
+    document.getElementById('chatInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+}
+
+function loadFAQData() {
+    faqData = [
+        // Account Questions
+        {
+            id: 1,
+            category: 'account',
+            question: 'Como criar uma conta no SPS Training?',
+            answer: 'Para criar uma conta, clique em "Entrar" no menu superior e depois em "Criar Conta". Preencha seus dados pessoais e confirme seu email. Você receberá um link de ativação por email.',
+            popular: true
+        },
+        {
+            id: 2,
+            category: 'account',
+            question: 'Esqueci minha senha, como recuperar?',
+            answer: 'Na tela de login, clique em "Esqueci minha senha". Digite seu email cadastrado e você receberá instruções para criar uma nova senha.',
+            popular: false
+        },
+        {
+            id: 3,
+            category: 'account',
+            question: 'Como alterar meus dados pessoais?',
+            answer: 'Acesse seu perfil clicando no seu nome no menu superior, depois em "Meu Perfil". Clique em "Editar" e faça as alterações necessárias.',
+            popular: true
+        },
+        
+        // Courses Questions
+        {
+            id: 4,
+            category: 'courses',
+            question: 'Como acessar os cursos?',
+            answer: 'Após fazer login, vá para "Módulos" no menu principal. Você verá todos os módulos disponíveis. Clique em um módulo para ver os treinamentos e vídeos.',
+            popular: true
+        },
+        {
+            id: 5,
+            category: 'courses',
+            question: 'Posso assistir os vídeos offline?',
+            answer: 'Atualmente, os vídeos só podem ser assistidos online. Estamos trabalhando em uma funcionalidade de download para acesso offline.',
+            popular: false
+        },
+        {
+            id: 6,
+            category: 'courses',
+            question: 'Como acompanhar meu progresso?',
+            answer: 'Seu progresso é salvo automaticamente conforme você assiste aos vídeos. Você pode ver seu progresso no dashboard, na página do módulo ou na página do treinamento.',
+            popular: true
+        },
+        {
+            id: 7,
+            category: 'courses',
+            question: 'Posso acelerar ou diminuir a velocidade dos vídeos?',
+            answer: 'Sim! No player de vídeo, clique no ícone de configurações (engrenagem) e escolha a velocidade desejada: 0.5x, 0.75x, 1x, 1.25x, 1.5x ou 2x.',
+            popular: false
+        },
+        
+        // Certificates Questions
+        {
+            id: 8,
+            category: 'certificates',
+            question: 'Como obter um certificado?',
+            answer: 'Para obter um certificado, você deve completar 100% dos vídeos de um treinamento. O certificado será gerado automaticamente e estará disponível na seção "Meus Certificados".',
+            popular: true
+        },
+        {
+            id: 9,
+            category: 'certificates',
+            question: 'Os certificados são válidos?',
+            answer: 'Sim, nossos certificados são válidos e reconhecidos. Cada certificado possui um código de verificação único que pode ser usado para comprovar sua autenticidade.',
+            popular: true
+        },
+        {
+            id: 10,
+            category: 'certificates',
+            question: 'Posso imprimir meu certificado?',
+            answer: 'Sim! Você pode baixar seus certificados em formato PDF de alta qualidade, ideal para impressão. Acesse "Meus Certificados" e clique em "Baixar PDF".',
+            popular: false
+        },
+        
+        // Technical Questions
+        {
+            id: 11,
+            category: 'technical',
+            question: 'Quais navegadores são suportados?',
+            answer: 'Recomendamos usar as versões mais recentes do Chrome, Firefox, Safari ou Edge. Para melhor experiência, mantenha seu navegador sempre atualizado.',
+            popular: false
+        },
+        {
+            id: 12,
+            category: 'technical',
+            question: 'O vídeo não carrega, o que fazer?',
+            answer: 'Verifique sua conexão com a internet. Se o problema persistir, tente limpar o cache do navegador ou usar outro navegador. Entre em contato conosco se o problema continuar.',
+            popular: true
+        },
+        {
+            id: 13,
+            category: 'technical',
+            question: 'Como ativar o modo escuro?',
+            answer: 'Clique no ícone de lua/sol no canto superior direito da tela para alternar entre os modos claro e escuro. Sua preferência será salva automaticamente.',
+            popular: false
+        },
+        
+        // Payment Questions
+        {
+            id: 14,
+            category: 'payment',
+            question: 'Quais formas de pagamento são aceitas?',
+            answer: 'Aceitamos cartões de crédito (Visa, Mastercard, American Express), PIX, boleto bancário e PayPal. Todos os pagamentos são processados de forma segura.',
+            popular: false
+        },
+        {
+            id: 15,
+            category: 'payment',
+            question: 'Posso cancelar minha assinatura?',
+            answer: 'Sim, você pode cancelar sua assinatura a qualquer momento em "Meu Perfil" > "Assinatura". O acesso continuará até o final do período pago.',
+            popular: false
+        }
+    ];
+    
+    filteredFAQ = [...faqData];
+    renderFAQ();
+}
+
+function filterFAQ(category) {
+    // Update active button
+    document.querySelectorAll('[data-category]').forEach(btn => {
+        btn.classList.remove('active', 'btn-primary');
+        btn.classList.add('btn-outline-primary');
+    });
+    
+    const activeBtn = document.querySelector(`[data-category="${category}"]`);
+    activeBtn.classList.remove('btn-outline-primary');
+    activeBtn.classList.add('active', 'btn-primary');
+    
+    // Filter FAQ
+    if (category === 'all') {
+        filteredFAQ = [...faqData];
+    } else {
+        filteredFAQ = faqData.filter(faq => faq.category === category);
+    }
+    
+    renderFAQ();
+}
+
+function searchFAQ() {
+    const searchTerm = document.getElementById('faqSearch').value.toLowerCase();
+    
+    if (searchTerm === '') {
+        filteredFAQ = [...faqData];
+    } else {
+        filteredFAQ = faqData.filter(faq => 
+            faq.question.toLowerCase().includes(searchTerm) ||
+            faq.answer.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    renderFAQ();
+}
+
+function renderFAQ() {
+    const container = document.getElementById('faqAccordion');
+    const noResults = document.getElementById('noResults');
+    
+    if (filteredFAQ.length === 0) {
+        container.innerHTML = '';
+        noResults.classList.remove('d-none');
+        return;
+    }
+    
+    noResults.classList.add('d-none');
+    
+    container.innerHTML = filteredFAQ.map((faq, index) => `
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" 
+                        data-bs-toggle="collapse" data-bs-target="#faq${faq.id}">
+                    <div class="d-flex align-items-center w-100">
+                        <div class="me-3">
+                            <i class="bi ${getCategoryIcon(faq.category)} text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            ${faq.question}
+                            ${faq.popular ? '<span class="badge bg-warning text-dark ms-2">Popular</span>' : ''}
+                        </div>
+                    </div>
+                </button>
+            </h2>
+            <div id="faq${faq.id}" class="accordion-collapse collapse" 
+                 data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                    <p class="mb-3">${faq.answer}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-sm btn-outline-success me-2" onclick="markHelpful(${faq.id})">
+                                <i class="bi bi-hand-thumbs-up me-1"></i>
+                                Útil
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="markNotHelpful(${faq.id})">
+                                <i class="bi bi-hand-thumbs-down me-1"></i>
+                                Não útil
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            Esta resposta foi útil?
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'account': 'bi-person-circle',
+        'courses': 'bi-book',
+        'certificates': 'bi-award',
+        'technical': 'bi-gear',
+        'payment': 'bi-credit-card'
+    };
+    return icons[category] || 'bi-question-circle';
+}
+
+function markHelpful(faqId) {
+    showToast('Obrigado pelo feedback! Isso nos ajuda a melhorar.', 'success');
+}
+
+function markNotHelpful(faqId) {
+    showToast('Obrigado pelo feedback. Vamos trabalhar para melhorar esta resposta.', 'info');
+}
+
+function openSupportChat() {
+    const modal = new bootstrap.Modal(document.getElementById('supportChatModal'));
+    modal.show();
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    const chatMessages = document.getElementById('chatMessages');
+    
+    // Add user message
+    const userMessage = `
+        <div class="d-flex mb-3 justify-content-end">
+            <div class="flex-grow-1 me-3 text-end">
+                <div class="bg-primary text-white rounded p-3 d-inline-block">
+                    <p class="mb-0">${message}</p>
+                </div>
+                <small class="text-muted">Agora</small>
+            </div>
+            <div class="flex-shrink-0">
+                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
+                     style="width: 40px; height: 40px;">
+                    <i class="bi bi-person"></i>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.insertAdjacentHTML('beforeend', userMessage);
+    input.value = '';
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Simulate bot response
+    setTimeout(() => {
+        const botResponse = getBotResponse(message);
+        const botMessage = `
+            <div class="d-flex mb-3">
+                <div class="flex-shrink-0">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <div class="bg-light rounded p-3">
+                        <p class="mb-0">${botResponse}</p>
+                    </div>
+                    <small class="text-muted">Agora</small>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.insertAdjacentHTML('beforeend', botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 1000);
+}
+
+function getBotResponse(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('certificado')) {
+        return 'Para obter um certificado, você precisa completar 100% dos vídeos de um treinamento. O certificado será gerado automaticamente. Posso ajudar com mais alguma coisa?';
+    } else if (lowerMessage.includes('senha') || lowerMessage.includes('login')) {
+        return 'Se esqueceu sua senha, use a opção "Esqueci minha senha" na tela de login. Você receberá um email com instruções para criar uma nova senha.';
+    } else if (lowerMessage.includes('progresso')) {
+        return 'Seu progresso é salvo automaticamente conforme você assiste aos vídeos. Você pode acompanhar no dashboard ou na página do módulo.';
+    } else if (lowerMessage.includes('vídeo') || lowerMessage.includes('video')) {
+        return 'Se está com problemas nos vídeos, verifique sua conexão com a internet e tente atualizar a página. Se persistir, entre em contato com nosso suporte técnico.';
+    } else {
+        return 'Entendi sua dúvida. Para uma resposta mais detalhada, recomendo verificar nosso FAQ acima ou entrar em contato com nosso suporte por email: suporte@spstraining.com';
+    }
+}
+
+// Auto-expand first FAQ item on load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const firstAccordion = document.querySelector('.accordion-collapse');
+        if (firstAccordion) {
+            const bsCollapse = new bootstrap.Collapse(firstAccordion, {
+                show: false
+            });
+        }
+    }, 500);
+});
+</script>
+{% endblock %}

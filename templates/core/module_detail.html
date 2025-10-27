@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ module.title }} - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Início</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:modules_list' %}">Módulos</a></li>
+            <li class="breadcrumb-item active">{{ module.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Module Header -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-start mb-3">
+                <div class="me-3">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                        <i class="bi bi-collection-fill text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1">
+                    <h1 class="h2 mb-2">{{ module.title }}</h1>
+                    <div class="d-flex align-items-center text-muted mb-2">
+                        <i class="bi bi-play-circle me-2"></i>
+                        <span>{{ module.trainings.count }} treinamento{{ module.trainings.count|pluralize }}</span>
+                        <span class="mx-2">•</span>
+                        <i class="bi bi-clock me-2"></i>
+                        <span>{{ module.estimated_duration|default:"--" }} minutos</span>
+                        <span class="mx-2">•</span>
+                        <i class="bi bi-camera-video me-2"></i>
+                        <span>{{ total_videos }} vídeo{{ total_videos|pluralize }}</span>
+                    </div>
+                    {% if user.is_authenticated %}
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-{{ module.progress_percentage|default:0|floatformat:0|add:0|yesno:'success,warning,secondary' }} me-2">
+                            {% if module.progress_percentage >= 100 %}
+                                <i class="bi bi-check-circle-fill me-1"></i>Concluído
+                            {% elif module.progress_percentage > 0 %}
+                                <i class="bi bi-clock-fill me-1"></i>Em Progresso
+                            {% else %}
+                                <i class="bi bi-circle me-1"></i>Não Iniciado
+                            {% endif %}
+                        </span>
+                        <span class="text-muted">{{ module.progress_percentage|default:0|floatformat:1 }}% concluído</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <p class="lead text-muted">{{ module.description }}</p>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    {% if user.is_authenticated %}
+                    <!-- Progress Overview -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Progresso Geral</h6>
+                            <span class="text-muted">{{ module.progress_percentage|default:0|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress progress-bar-custom">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ module.progress_percentage|default:0 }}%"></div>
+                        </div>
+                        <small class="text-muted">
+                            {{ completed_trainings }}/{{ module.trainings.count }} treinamentos concluídos
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Module Stats -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <div class="h5 mb-0">{{ module.trainings.count }}</div>
+                                <small class="text-muted">Treinamentos</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <div class="h5 mb-0">{{ total_videos }}</div>
+                                <small class="text-muted">Vídeos</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-0">{{ module.estimated_duration|default:"--" }}</div>
+                            <small class="text-muted">Minutos</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        {% if first_training %}
+                        <a href="{% url 'courses:training_detail' first_training.id %}" class="btn btn-primary">
+                            <i class="bi bi-play-circle me-2"></i>
+                            {% if user.is_authenticated %}
+                                {% if module.progress_percentage >= 100 %}
+                                    Revisar Módulo
+                                {% elif module.progress_percentage > 0 %}
+                                    Continuar Treinamento
+                                {% else %}
+                                    Iniciar Treinamento
+                                {% endif %}
+                            {% else %}
+                                Ver Primeiro Treinamento
+                            {% endif %}
+                        </a>
+                        {% endif %}
+                        
+                        {% if user.is_authenticated %}
+                        <button class="btn btn-outline-secondary" onclick="toggleFavorite({{ module.id }})">
+                            <i class="bi bi-heart me-2"></i>
+                            Adicionar aos Favoritos
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trainings List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-ul me-2"></i>
+                            Lista de Treinamentos
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="expandAll()">
+                                <i class="bi bi-arrows-expand me-1"></i>Expandir Todos
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="collapseAll()">
+                                <i class="bi bi-arrows-collapse me-1"></i>Recolher Todos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if trainings %}
+                        <div class="accordion" id="trainingsAccordion">
+                            {% for training in trainings %}
+                            <div class="accordion-item border-0 mb-3">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed training-header" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#training{{ training.id }}"
+                                            data-training-id="{{ training.id }}">
+                                        <div class="d-flex align-items-center w-100">
+                                            <div class="me-3">
+                                                {% if user.is_authenticated %}
+                                                    {% if training.is_completed %}
+                                                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                                    {% elif training.progress_percentage > 0 %}
+                                                        <i class="bi bi-play-circle-fill text-warning fs-5"></i>
+                                                    {% else %}
+                                                        <i class="bi bi-circle text-muted fs-5"></i>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <i class="bi bi-play-circle text-primary fs-5"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">{{ forloop.counter }}. {{ training.title }}</h6>
+                                                        <div class="d-flex align-items-center text-muted small">
+                                                            <i class="bi bi-camera-video me-1"></i>
+                                                            <span>{{ training.videos.count }} vídeo{{ training.videos.count|pluralize }}</span>
+                                                            {% if training.estimated_duration %}
+                                                            <span class="mx-2">•</span>
+                                                            <i class="bi bi-clock me-1"></i>
+                                                            <span>{{ training.estimated_duration }} min</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    {% if user.is_authenticated %}
+                                                    <div class="text-end">
+                                                        <small class="text-muted d-block">
+                                                            {{ training.progress_percentage|default:0|floatformat:1 }}%
+                                                        </small>
+                                                        <div class="progress progress-bar-custom" style="width: 60px; height: 4px;">
+                                                            <div class="progress-bar" role="progressbar" 
+                                                                 style="width: {{ training.progress_percentage|default:0 }}%"></div>
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="training{{ training.id }}" class="accordion-collapse collapse" 
+                                     data-bs-parent="#trainingsAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <p class="text-muted mb-3">{{ training.description }}</p>
+                                                
+                                                <!-- Videos List -->
+                                                <h6 class="mb-3">
+                                                    <i class="bi bi-camera-video me-2"></i>
+                                                    Vídeos ({{ training.videos.count }})
+                                                </h6>
+                                                <div class="list-group list-group-flush">
+                                                    {% for video in training.videos.all %}
+                                                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                        <div class="d-flex align-items-center">
+                                                            {% if user.is_authenticated %}
+                                                                {% if video.is_completed %}
+                                                                    <i class="bi bi-check-circle-fill text-success me-3"></i>
+                                                                {% elif video.progress_percentage > 0 %}
+                                                                    <i class="bi bi-play-circle-fill text-warning me-3"></i>
+                                                                {% else %}
+                                                                    <i class="bi bi-play-circle text-muted me-3"></i>
+                                                                {% endif %}
+                                                            {% else %}
+                                                                <i class="bi bi-play-circle text-primary me-3"></i>
+                                                            {% endif %}
+                                                            <div>
+                                                                <h6 class="mb-1">{{ video.title }}</h6>
+                                                                <small class="text-muted">
+                                                                    {% if video.duration_seconds %}
+                                                                        <i class="bi bi-clock me-1"></i>
+                                                                        {% widthratio video.duration_seconds 60 1 %} min
+                                                                    {% endif %}
+                                                                    {% if user.is_authenticated and video.progress_percentage > 0 %}
+                                                                        • {{ video.progress_percentage|floatformat:1 }}% assistido
+                                                                    {% endif %}
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <a href="{% url 'core:video_detail' video.id %}" 
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-play me-1"></i>
+                                                            {% if user.is_authenticated and video.progress_percentage > 0 %}
+                                                                Continuar
+                                                            {% else %}
+                                                                Assistir
+                                                            {% endif %}
+                                                        </a>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card bg-light border-0">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title">
+                                                            <i class="bi bi-info-circle me-2"></i>
+                                                            Informações
+                                                        </h6>
+                                                        <ul class="list-unstyled mb-0">
+                                                            <li class="mb-2">
+                                                                <strong>Vídeos:</strong> {{ training.videos.count }}
+                                                            </li>
+                                                            {% if training.estimated_duration %}
+                                                            <li class="mb-2">
+                                                                <strong>Duração:</strong> {{ training.estimated_duration }} min
+                                                            </li>
+                                                            {% endif %}
+                                                            {% if user.is_authenticated %}
+                                                            <li class="mb-2">
+                                                                <strong>Progresso:</strong> {{ training.progress_percentage|default:0|floatformat:1 }}%
+                                                            </li>
+                                                            {% endif %}
+                                                            <li class="mb-2">
+                                                                <strong>Ordem:</strong> {{ training.order_index }}º treinamento
+                                                            </li>
+                                                        </ul>
+                                                        
+                                                        <div class="d-grid mt-3">
+                                                            <a href="{% url 'courses:training_detail' training.id %}" 
+                                                               class="btn btn-primary btn-sm">
+                                                                <i class="bi bi-arrow-right me-2"></i>
+                                                                Ir para Treinamento
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-play-circle text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">Nenhum treinamento disponível</h5>
+                        <p class="text-muted">Os treinamentos deste módulo serão exibidos aqui quando estiverem disponíveis.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'core:modules_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Voltar aos Módulos
+                </a>
+                {% if first_training %}
+                <a href="{% url 'courses:training_detail' first_training.id %}" class="btn btn-primary">
+                    {% if user.is_authenticated and module.progress_percentage > 0 %}
+                        Continuar Treinamento
+                    {% else %}
+                        Iniciar Primeiro Treinamento
+                    {% endif %}
+                    <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate progress bars
+    animateProgressBars();
+    
+    // Load training progress for authenticated users
+    {% if user.is_authenticated %}
+    loadTrainingProgress();
+    {% endif %}
+});
+
+function animateProgressBars() {
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach((bar, index) => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = 'width 1s ease-in-out';
+            bar.style.width = width;
+        }, 100 + (index * 100));
+    });
+}
+
+function expandAll() {
+    const accordionItems = document.querySelectorAll('.accordion-collapse');
+    accordionItems.forEach(item => {
+        const bsCollapse = new bootstrap.Collapse(item, { show: true });
+    });
+}
+
+function collapseAll() {
+    const accordionItems = document.querySelectorAll('.accordion-collapse.show');
+    accordionItems.forEach(item => {
+        const bsCollapse = bootstrap.Collapse.getInstance(item);
+        if (bsCollapse) {
+            bsCollapse.hide();
+        }
+    });
+}
+
+function toggleFavorite(moduleId) {
+    // This would typically make an AJAX call to toggle favorite status
+    showToast('Módulo adicionado aos favoritos!', 'success');
+}
+
+function loadTrainingProgress() {
+    // This would typically load real-time progress data via AJAX
+    console.log('Loading training progress...');
+}
+
+// Track accordion interactions for analytics
+document.addEventListener('shown.bs.collapse', function(e) {
+    const trainingId = e.target.id.replace('training', '');
+    console.log('Training expanded:', trainingId);
+});
+
+// Auto-expand first incomplete training
+document.addEventListener('DOMContentLoaded', function() {
+    {% if user.is_authenticated %}
+    const incompleteTrainings = document.querySelectorAll('.training-header');
+    let firstIncomplete = null;
+    
+    incompleteTrainings.forEach(header => {
+        const icon = header.querySelector('i');
+        if (icon && (icon.classList.contains('bi-circle') || icon.classList.contains('bi-play-circle-fill'))) {
+            if (!firstIncomplete) {
+                firstIncomplete = header;
+            }
+        }
+    });
+    
+    if (firstIncomplete) {
+        setTimeout(() => {
+            firstIncomplete.click();
+        }, 500);
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

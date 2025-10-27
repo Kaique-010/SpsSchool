@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}Módulos - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Módulos de Treinamento</h1>
+            <p class="text-muted mb-0">Explore todos os módulos disponíveis e acompanhe seu progresso</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="toggleView()">
+                <i class="bi bi-grid-3x3-gap" id="viewIcon"></i>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-funnel me-1"></i>Filtrar
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?filter=all">Todos os Módulos</a></li>
+                    <li><a class="dropdown-item" href="?filter=not_started">Não Iniciados</a></li>
+                    <li><a class="dropdown-item" href="?filter=in_progress">Em Progresso</a></li>
+                    <li><a class="dropdown-item" href="?filter=completed">Concluídos</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Buscar módulos..." 
+                       id="moduleSearch" onkeyup="filterModules()">
+                <button class="btn btn-outline-primary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" id="sortSelect" onchange="sortModules()">
+                <option value="name">Ordenar por Nome</option>
+                <option value="progress">Ordenar por Progresso</option>
+                <option value="trainings">Ordenar por Nº de Treinamentos</option>
+                <option value="recent">Mais Recentes</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Modules Grid -->
+    <div class="row" id="modulesContainer">
+        {% if page_obj %}
+            {% for module_data in page_obj %}
+            <div class="col-lg-4 col-md-6 mb-4 module-item" 
+                 data-name="{{ module_data.module.title|lower }}" 
+                 data-progress="{{ module_data.progress|default:0 }}"
+                 data-trainings="{{ module_data.total_trainings }}">
+                <div class="card module-card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <!-- Module Header -->
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="me-3">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                    <i class="bi bi-collection-fill text-primary" style="font-size: 1.5rem;"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ module_data.module.title }}</h5>
+                                <div class="d-flex align-items-center text-muted small">
+                                    <i class="bi bi-play-circle me-1"></i>
+                                    <span>{{ module_data.total_trainings }} treinamento{{ module_data.total_trainings|pluralize }}</span>
+                                    {% if module_data.estimated_duration %}
+                                    <span class="mx-2">•</span>
+                                    <i class="bi bi-clock me-1"></i>
+                                    <span>{{ module_data.estimated_duration }} min</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if user.is_authenticated %}
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'core:module_detail' module_data.module.id %}">
+                                        <i class="bi bi-eye me-2"></i>Ver Detalhes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="addToFavorites({{ module_data.module.id }})">
+                                        <i class="bi bi-heart me-2"></i>Adicionar aos Favoritos
+                                    </a></li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Module Description -->
+                        <p class="card-text text-muted mb-3">
+                            {{ module_data.module.description|truncatewords:25 }}
+                        </p>
+
+                        <!-- Progress Section (for authenticated users) -->
+                        {% if user.is_authenticated %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted fw-medium">Progresso</small>
+                                <small class="text-muted">
+                                    <span class="progress-text">{{ module_data.progress|default:0 }}%</span>
+                                </small>
+                            </div>
+                            <div class="progress progress-bar-custom">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ module_data.progress|default:0 }}%"
+                                     data-progress="{{ module_data.progress|default:0 }}"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">
+                                    {{ module_data.completed_videos|default:0 }}/{{ module_data.total_videos }} concluídos
+                                </small>
+                                {% if module_data.progress >= 100 %}
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Concluído
+                                </small>
+                                {% elif module_data.progress > 0 %}
+                                <small class="text-warning">
+                                    <i class="bi bi-clock-fill me-1"></i>Em progresso
+                                </small>
+                                {% else %}
+                                <small class="text-muted">
+                                    <i class="bi bi-circle me-1"></i>Não iniciado
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Module Tags -->
+                        {% if module_data.module.tags %}
+                        <div class="mb-3">
+                            {% for tag in module_data.module.tags %}
+                            <span class="badge bg-secondary me-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'core:module_detail' module_data.module.id %}" class="btn btn-primary">
+                                <i class="bi bi-play-circle me-1"></i>
+                                {% if user.is_authenticated %}
+                                    {% if module_data.progress >= 100 %}
+                                        Revisar
+                                    {% elif module_data.progress > 0 %}
+                                        Continuar
+                                    {% else %}
+                                        Iniciar
+                                    {% endif %}
+                                {% else %}
+                                    Ver Módulo
+                                {% endif %}
+                            </a>
+                            
+                            {% if module_data.total_trainings > 0 %}
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                        data-bs-toggle="dropdown">
+                                    Treinamentos
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% for training in module_data.module.trainings.all|slice:":5" %}
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'courses:training_detail' training.id %}">
+                                            <i class="bi bi-play-circle me-2"></i>
+                                            {{ training.title|truncatechars:30 }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                    {% if module_data.total_trainings > 5 %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:module_detail' module_data.module.id %}">
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            Ver todos ({{ module_data.total_trainings }})
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Module Footer with Stats -->
+                    <div class="card-footer bg-transparent border-0 pt-0">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted d-block">Vídeos</small>
+                                <strong>{{ module_data.total_videos|default:0 }}</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Duração</small>
+                                <strong>{{ module_data.estimated_duration|default:"--" }}min</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Nível</small>
+                                <strong>{{ module_data.module.difficulty_level|default:"Básico" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="card border-0">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-collection text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">Nenhum módulo encontrado</h4>
+                    <p class="text-muted">
+                        {% if request.GET.search %}
+                            Não encontramos módulos com o termo "{{ request.GET.search }}".
+                        {% else %}
+                            Os módulos de treinamento serão exibidos aqui quando estiverem disponíveis.
+                        {% endif %}
+                    </p>
+                    {% if request.GET.search %}
+                    <a href="{% url 'core:modules_list' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left me-2"></i>Ver Todos os Módulos
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Load More Button (if pagination is needed) -->
+    {% if page_obj.has_next %}
+    <div class="text-center mt-4">
+        <button class="btn btn-outline-primary" onclick="loadMoreModules()">
+            <i class="bi bi-arrow-down-circle me-2"></i>
+            Carregar Mais Módulos
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentView = 'grid';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate progress bars
+    animateProgressBars();
+    
+    // Set initial view
+    updateViewIcon();
+});
+
+function animateProgressBars() {
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach((bar, index) => {
+        const progress = bar.getAttribute('data-progress');
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = 'width 1s ease-in-out';
+            bar.style.width = progress + '%';
+        }, 100 + (index * 50));
+    });
+}
+
+function toggleView() {
+    const container = document.getElementById('modulesContainer');
+    const items = container.querySelectorAll('.module-item');
+    
+    if (currentView === 'grid') {
+        // Switch to list view
+        currentView = 'list';
+        items.forEach(item => {
+            item.className = 'col-12 mb-3 module-item';
+        });
+    } else {
+        // Switch to grid view
+        currentView = 'grid';
+        items.forEach(item => {
+            item.className = 'col-lg-4 col-md-6 mb-4 module-item';
+        });
+    }
+    
+    updateViewIcon();
+}
+
+function updateViewIcon() {
+    const icon = document.getElementById('viewIcon');
+    icon.className = currentView === 'grid' ? 'bi bi-list' : 'bi bi-grid-3x3-gap';
+}
+
+function filterModules() {
+    const searchTerm = document.getElementById('moduleSearch').value.toLowerCase();
+    const items = document.querySelectorAll('.module-item');
+    
+    items.forEach(item => {
+        const name = item.getAttribute('data-name');
+        const isVisible = name.includes(searchTerm);
+        item.style.display = isVisible ? 'block' : 'none';
+    });
+}
+
+function sortModules() {
+    const sortBy = document.getElementById('sortSelect').value;
+    const container = document.getElementById('modulesContainer');
+    const items = Array.from(container.querySelectorAll('.module-item'));
+    
+    items.sort((a, b) => {
+        switch (sortBy) {
+            case 'name':
+                return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+            case 'progress':
+                return parseInt(b.getAttribute('data-progress')) - parseInt(a.getAttribute('data-progress'));
+            case 'trainings':
+                return parseInt(b.getAttribute('data-trainings')) - parseInt(a.getAttribute('data-trainings'));
+            case 'recent':
+                // For now, just reverse the order
+                return items.indexOf(b) - items.indexOf(a);
+            default:
+                return 0;
+        }
+    });
+    
+    // Re-append sorted items
+    items.forEach(item => container.appendChild(item));
+    
+    // Re-animate progress bars
+    setTimeout(animateProgressBars, 100);
+}
+
+function addToFavorites(moduleId) {
+    // This would typically make an AJAX call to add to favorites
+    showToast('Módulo adicionado aos favoritos!', 'success');
+}
+
+function loadMoreModules() {
+    // This would typically load more modules via AJAX
+    showToast('Carregando mais módulos...', 'info');
+}
+
+// Add hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const moduleCards = document.querySelectorAll('.module-card');
+    
+    moduleCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

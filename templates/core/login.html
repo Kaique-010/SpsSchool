@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <!-- Logo/Header -->
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="bi bi-play-circle-fill text-primary" style="font-size: 4rem;"></i>
+                        </div>
+                        <h2 class="h4 mb-1">SPS Training System</h2>
+                        <p class="text-muted">Faça login para acessar seus treinamentos</p>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form method="post" id="loginForm">
+                        {% csrf_token %}
+                        
+                        <!-- Error Messages -->
+                        {% if form.errors or error %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            {% if error %}
+                                {{ error }}
+                            {% else %}
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Success Messages -->
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}" role="alert">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {{ message }}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Username Field -->
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="bi bi-person me-1"></i>
+                                Usuário ou Email
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="id_username" 
+                                   name="username" 
+                                   placeholder="Digite seu usuário ou email"
+                                   value="{{ form.username.value|default:'' }}"
+                                   required>
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">
+                                <i class="bi bi-lock me-1"></i>
+                                Senha
+                            </label>
+                            <div class="input-group">
+                                <input type="password" 
+                                       class="form-control form-control-lg" 
+                                       id="id_password" 
+                                       name="password" 
+                                       placeholder="Digite sua senha"
+                                       required>
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        onclick="togglePassword()"
+                                        id="togglePasswordBtn">
+                                    <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Remember Me -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="rememberMe" 
+                                       name="remember_me">
+                                <label class="form-check-label" for="rememberMe">
+                                    Lembrar de mim
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                <span class="btn-text">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                                    Entrar
+                                </span>
+                                <span class="btn-loading d-none">
+                                    <div class="loading-spinner me-2"></div>
+                                    Entrando...
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Forgot Password Link -->
+                        <div class="text-center">
+                            <a href="#" class="text-muted text-decoration-none" onclick="showForgotPassword()">
+                                <i class="bi bi-question-circle me-1"></i>
+                                Esqueceu sua senha?
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Divider -->
+                    <hr class="my-4">
+
+                    <!-- Guest Access -->
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Ou explore como visitante</p>
+                        <a href="{% url 'core:modules_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-eye me-2"></i>
+                            Ver Módulos Públicos
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div class="card-footer bg-transparent border-0 text-center py-3">
+                    <small class="text-muted">
+                        © 2024 SPS Training System. Todos os direitos reservados.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-key me-2"></i>
+                    Recuperar Senha
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    Digite seu email para receber instruções de recuperação de senha.
+                </p>
+                <form id="forgotPasswordForm">
+                    <div class="mb-3">
+                        <label for="resetEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="resetEmail" 
+                               placeholder="Digite seu email" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-envelope me-2"></i>
+                            Enviar Instruções
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Focus on username field
+    document.getElementById('id_username').focus();
+    
+    // Form validation
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', function(e) {
+        const username = document.getElementById('id_username').value.trim();
+        const password = document.getElementById('id_password').value;
+        
+        if (!username || !password) {
+            e.preventDefault();
+            showToast('Por favor, preencha todos os campos', 'warning');
+            return;
+        }
+        
+        // Show loading state
+        showLoadingState();
+    });
+    
+    // Enter key handling
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+            form.submit();
+        }
+    });
+});
+
+function togglePassword() {
+    const passwordField = document.getElementById('id_password');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        passwordField.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+function showLoadingState() {
+    const btn = document.getElementById('loginBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    btn.disabled = true;
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+}
+
+function hideLoadingState() {
+    const btn = document.getElementById('loginBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    btn.disabled = false;
+    btnText.classList.remove('d-none');
+    btnLoading.classList.add('d-none');
+}
+
+function showForgotPassword() {
+    const modal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+    modal.show();
+}
+
+// Forgot password form handling
+document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('resetEmail').value;
+    
+    if (!email) {
+        showToast('Por favor, digite seu email', 'warning');
+        return;
+    }
+    
+    // Simulate password reset request
+    showToast('Instruções enviadas para seu email!', 'success');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+    modal.hide();
+    
+    // Clear form
+    document.getElementById('resetEmail').value = '';
+});
+
+// Auto-hide alerts after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = 'opacity 0.5s ease';
+            alert.style.opacity = '0';
+            setTimeout(() => {
+                alert.remove();
+            }, 500);
+        }, 5000);
+    });
+});
+
+// Demo credentials hint (remove in production)
+document.addEventListener('DOMContentLoaded', function() {
+    const usernameField = document.getElementById('id_username');
+    
+    usernameField.addEventListener('focus', function() {
+        if (!this.value) {
+            showToast('Dica: Use "admin" como usuário para teste', 'info');
+        }
+    });
+});
+
+// Prevent form resubmission on page refresh
+if (window.history.replaceState) {
+    window.history.replaceState(null, null, window.location.href);
+}
+</script>
+{% endblock %}

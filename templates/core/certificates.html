@@ -1,0 +1,673 @@
+{% extends 'base.html' %}
+
+{% block title %}Meus Certificados - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'core:dashboard' %}">
+                    <i class="bi bi-house-door me-1"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Meus Certificados</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-1">
+                <i class="bi bi-award text-warning me-2"></i>
+                Meus Certificados
+            </h2>
+            <p class="text-muted mb-0">Visualize e gerencie todos os seus certificados obtidos</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="downloadAllCertificates()">
+                <i class="bi bi-download me-2"></i>
+                Baixar Todos
+            </button>
+            <button class="btn btn-primary" onclick="shareCertificates()">
+                <i class="bi bi-share me-2"></i>
+                Compartilhar
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-award display-6 mb-2"></i>
+                    <h4 class="mb-1" id="totalCertificates">0</h4>
+                    <small>Total de Certificados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-check display-6 mb-2"></i>
+                    <h4 class="mb-1" id="thisMonthCertificates">0</h4>
+                    <small>Este Mês</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history display-6 mb-2"></i>
+                    <h4 class="mb-1" id="totalHours">0h</h4>
+                    <small>Horas de Treinamento</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-star-fill display-6 mb-2"></i>
+                    <h4 class="mb-1" id="averageScore">0%</h4>
+                    <small>Nota Média</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Buscar certificados...">
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <select class="form-select" id="categoryFilter">
+                        <option value="">Todas as Categorias</option>
+                        <option value="python">Python</option>
+                        <option value="django">Django</option>
+                        <option value="web">Desenvolvimento Web</option>
+                        <option value="database">Banco de Dados</option>
+                        <option value="api">APIs</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <select class="form-select" id="dateFilter">
+                        <option value="">Todos os Períodos</option>
+                        <option value="this-month">Este Mês</option>
+                        <option value="last-month">Mês Passado</option>
+                        <option value="this-year">Este Ano</option>
+                        <option value="last-year">Ano Passado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="sortFilter">
+                        <option value="date-desc">Mais Recentes</option>
+                        <option value="date-asc">Mais Antigos</option>
+                        <option value="name-asc">Nome A-Z</option>
+                        <option value="name-desc">Nome Z-A</option>
+                        <option value="score-desc">Maior Nota</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="viewMode" id="gridView" checked>
+            <label class="btn btn-outline-secondary" for="gridView">
+                <i class="bi bi-grid-3x3-gap"></i>
+            </label>
+            <input type="radio" class="btn-check" name="viewMode" id="listView">
+            <label class="btn btn-outline-secondary" for="listView">
+                <i class="bi bi-list"></i>
+            </label>
+        </div>
+        <div class="text-muted">
+            <span id="certificateCount">0</span> certificados encontrados
+        </div>
+    </div>
+
+    <!-- Certificates Grid -->
+    <div id="certificatesContainer">
+        <div class="row" id="certificatesGrid">
+            <!-- Certificates will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-award text-muted" style="font-size: 4rem;"></i>
+        <h4 class="text-muted mt-3">Nenhum certificado encontrado</h4>
+        <p class="text-muted">Complete seus treinamentos para obter certificados!</p>
+        <a href="{% url 'core:modules_list' %}" class="btn btn-primary">
+            <i class="bi bi-play-circle me-2"></i>
+            Explorar Módulos
+        </a>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="text-center py-5">
+        <div class="loading-spinner mx-auto mb-3"></div>
+        <p class="text-muted">Carregando certificados...</p>
+    </div>
+</div>
+
+<!-- Certificate Detail Modal -->
+<div class="modal fade" id="certificateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-award text-warning me-2"></i>
+                    Detalhes do Certificado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <img id="modalCertificateImage" src="" alt="Certificado" 
+                         class="img-fluid rounded shadow" style="max-height: 300px;">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-1">Curso</h6>
+                        <p class="mb-3" id="modalCourseName">-</p>
+                        
+                        <h6 class="text-muted mb-1">Data de Conclusão</h6>
+                        <p class="mb-3" id="modalCompletionDate">-</p>
+                        
+                        <h6 class="text-muted mb-1">Carga Horária</h6>
+                        <p class="mb-3" id="modalDuration">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-1">Nota Final</h6>
+                        <p class="mb-3">
+                            <span class="badge bg-success fs-6" id="modalScore">-</span>
+                        </p>
+                        
+                        <h6 class="text-muted mb-1">Instrutor</h6>
+                        <p class="mb-3" id="modalInstructor">-</p>
+                        
+                        <h6 class="text-muted mb-1">Código de Verificação</h6>
+                        <p class="mb-3">
+                            <code id="modalVerificationCode">-</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                    onclick="copyVerificationCode()">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Fechar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="downloadCurrentCertificate()">
+                    <i class="bi bi-download me-2"></i>
+                    Baixar PDF
+                </button>
+                <button type="button" class="btn btn-success" onclick="shareCurrentCertificate()">
+                    <i class="bi bi-share me-2"></i>
+                    Compartilhar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-share me-2"></i>
+                    Compartilhar Certificado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Compartilhe seu certificado nas redes sociais:</p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="shareOnLinkedIn()">
+                        <i class="bi bi-linkedin me-2"></i>
+                        LinkedIn
+                    </button>
+                    <button class="btn btn-info" onclick="shareOnTwitter()">
+                        <i class="bi bi-twitter me-2"></i>
+                        Twitter
+                    </button>
+                    <button class="btn btn-success" onclick="shareOnWhatsApp()">
+                        <i class="bi bi-whatsapp me-2"></i>
+                        WhatsApp
+                    </button>
+                    <button class="btn btn-secondary" onclick="copyShareLink()">
+                        <i class="bi bi-link-45deg me-2"></i>
+                        Copiar Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let certificates = [];
+let filteredCertificates = [];
+let currentCertificate = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCertificates();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Search
+    document.getElementById('searchInput').addEventListener('input', filterCertificates);
+    
+    // Filters
+    document.getElementById('categoryFilter').addEventListener('change', filterCertificates);
+    document.getElementById('dateFilter').addEventListener('change', filterCertificates);
+    document.getElementById('sortFilter').addEventListener('change', filterCertificates);
+    
+    // View toggle
+    document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+        radio.addEventListener('change', toggleView);
+    });
+}
+
+function loadCertificates() {
+    // Simulate loading certificates
+    setTimeout(() => {
+        certificates = [
+            {
+                id: 1,
+                name: 'Python Fundamentals',
+                category: 'python',
+                completionDate: '2024-12-15',
+                duration: '20h',
+                score: 95,
+                instructor: 'Prof. João Silva',
+                verificationCode: 'PY-2024-001-ABC123',
+                image: 'https://via.placeholder.com/400x300/007bff/ffffff?text=Python+Certificate'
+            },
+            {
+                id: 2,
+                name: 'Django Web Framework',
+                category: 'django',
+                completionDate: '2024-12-10',
+                duration: '30h',
+                score: 88,
+                instructor: 'Prof. Maria Santos',
+                verificationCode: 'DJ-2024-002-DEF456',
+                image: 'https://via.placeholder.com/400x300/28a745/ffffff?text=Django+Certificate'
+            },
+            {
+                id: 3,
+                name: 'REST API Development',
+                category: 'api',
+                completionDate: '2024-12-05',
+                duration: '15h',
+                score: 92,
+                instructor: 'Prof. Carlos Lima',
+                verificationCode: 'API-2024-003-GHI789',
+                image: 'https://via.placeholder.com/400x300/17a2b8/ffffff?text=API+Certificate'
+            },
+            {
+                id: 4,
+                name: 'Database Design',
+                category: 'database',
+                completionDate: '2024-11-28',
+                duration: '25h',
+                score: 90,
+                instructor: 'Prof. Ana Costa',
+                verificationCode: 'DB-2024-004-JKL012',
+                image: 'https://via.placeholder.com/400x300/ffc107/000000?text=Database+Certificate'
+            },
+            {
+                id: 5,
+                name: 'Frontend Development',
+                category: 'web',
+                completionDate: '2024-11-20',
+                duration: '35h',
+                score: 87,
+                instructor: 'Prof. Pedro Oliveira',
+                verificationCode: 'WEB-2024-005-MNO345',
+                image: 'https://via.placeholder.com/400x300/dc3545/ffffff?text=Web+Certificate'
+            }
+        ];
+        
+        filteredCertificates = [...certificates];
+        updateStatistics();
+        renderCertificates();
+        hideLoading();
+    }, 1000);
+}
+
+function updateStatistics() {
+    document.getElementById('totalCertificates').textContent = certificates.length;
+    
+    // This month certificates
+    const thisMonth = new Date().getMonth();
+    const thisYear = new Date().getFullYear();
+    const thisMonthCerts = certificates.filter(cert => {
+        const certDate = new Date(cert.completionDate);
+        return certDate.getMonth() === thisMonth && certDate.getFullYear() === thisYear;
+    });
+    document.getElementById('thisMonthCertificates').textContent = thisMonthCerts.length;
+    
+    // Total hours
+    const totalHours = certificates.reduce((sum, cert) => {
+        return sum + parseInt(cert.duration.replace('h', ''));
+    }, 0);
+    document.getElementById('totalHours').textContent = totalHours + 'h';
+    
+    // Average score
+    const avgScore = certificates.reduce((sum, cert) => sum + cert.score, 0) / certificates.length;
+    document.getElementById('averageScore').textContent = Math.round(avgScore) + '%';
+}
+
+function filterCertificates() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+    
+    filteredCertificates = certificates.filter(cert => {
+        const matchesSearch = cert.name.toLowerCase().includes(search) ||
+                            cert.instructor.toLowerCase().includes(search);
+        const matchesCategory = !category || cert.category === category;
+        const matchesDate = filterByDate(cert, dateFilter);
+        
+        return matchesSearch && matchesCategory && matchesDate;
+    });
+    
+    // Sort certificates
+    sortCertificates(sort);
+    
+    renderCertificates();
+}
+
+function filterByDate(cert, filter) {
+    if (!filter) return true;
+    
+    const certDate = new Date(cert.completionDate);
+    const now = new Date();
+    
+    switch (filter) {
+        case 'this-month':
+            return certDate.getMonth() === now.getMonth() && 
+                   certDate.getFullYear() === now.getFullYear();
+        case 'last-month':
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+            return certDate.getMonth() === lastMonth.getMonth() && 
+                   certDate.getFullYear() === lastMonth.getFullYear();
+        case 'this-year':
+            return certDate.getFullYear() === now.getFullYear();
+        case 'last-year':
+            return certDate.getFullYear() === now.getFullYear() - 1;
+        default:
+            return true;
+    }
+}
+
+function sortCertificates(sort) {
+    filteredCertificates.sort((a, b) => {
+        switch (sort) {
+            case 'date-desc':
+                return new Date(b.completionDate) - new Date(a.completionDate);
+            case 'date-asc':
+                return new Date(a.completionDate) - new Date(b.completionDate);
+            case 'name-asc':
+                return a.name.localeCompare(b.name);
+            case 'name-desc':
+                return b.name.localeCompare(a.name);
+            case 'score-desc':
+                return b.score - a.score;
+            default:
+                return 0;
+        }
+    });
+}
+
+function renderCertificates() {
+    const container = document.getElementById('certificatesGrid');
+    const countElement = document.getElementById('certificateCount');
+    const emptyState = document.getElementById('emptyState');
+    
+    countElement.textContent = filteredCertificates.length;
+    
+    if (filteredCertificates.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('d-none');
+        return;
+    }
+    
+    emptyState.classList.add('d-none');
+    
+    const isGridView = document.getElementById('gridView').checked;
+    
+    if (isGridView) {
+        renderGridView(container);
+    } else {
+        renderListView(container);
+    }
+}
+
+function renderGridView(container) {
+    container.className = 'row';
+    container.innerHTML = filteredCertificates.map(cert => `
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 certificate-card" onclick="showCertificateDetail(${cert.id})">
+                <div class="position-relative">
+                    <img src="${cert.image}" class="card-img-top" alt="${cert.name}" style="height: 200px; object-fit: cover;">
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-success">${cert.score}%</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title">${cert.name}</h6>
+                    <p class="card-text text-muted small mb-2">
+                        <i class="bi bi-person me-1"></i>
+                        ${cert.instructor}
+                    </p>
+                    <p class="card-text text-muted small mb-2">
+                        <i class="bi bi-calendar me-1"></i>
+                        ${formatDate(cert.completionDate)}
+                    </p>
+                    <p class="card-text text-muted small">
+                        <i class="bi bi-clock me-1"></i>
+                        ${cert.duration}
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary flex-fill" onclick="event.stopPropagation(); downloadCertificate(${cert.id})">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="event.stopPropagation(); shareCertificate(${cert.id})">
+                            <i class="bi bi-share"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info flex-fill" onclick="event.stopPropagation(); showCertificateDetail(${cert.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderListView(container) {
+    container.className = '';
+    container.innerHTML = `
+        <div class="list-group">
+            ${filteredCertificates.map(cert => `
+                <div class="list-group-item list-group-item-action border-0 shadow-sm mb-3 certificate-card" onclick="showCertificateDetail(${cert.id})">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            <img src="${cert.image}" class="img-fluid rounded" alt="${cert.name}" style="height: 80px; object-fit: cover;">
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-1">${cert.name}</h6>
+                            <p class="text-muted mb-1 small">
+                                <i class="bi bi-person me-1"></i>
+                                ${cert.instructor}
+                            </p>
+                            <p class="text-muted mb-0 small">
+                                <i class="bi bi-calendar me-1"></i>
+                                ${formatDate(cert.completionDate)} • 
+                                <i class="bi bi-clock me-1"></i>
+                                ${cert.duration}
+                            </p>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-success fs-6">${cert.score}%</span>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); downloadCertificate(${cert.id})">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); shareCertificate(${cert.id})">
+                                    <i class="bi bi-share"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function toggleView() {
+    renderCertificates();
+}
+
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+}
+
+function showCertificateDetail(id) {
+    currentCertificate = certificates.find(cert => cert.id === id);
+    if (!currentCertificate) return;
+    
+    document.getElementById('modalCertificateImage').src = currentCertificate.image;
+    document.getElementById('modalCourseName').textContent = currentCertificate.name;
+    document.getElementById('modalCompletionDate').textContent = formatDate(currentCertificate.completionDate);
+    document.getElementById('modalDuration').textContent = currentCertificate.duration;
+    document.getElementById('modalScore').textContent = currentCertificate.score + '%';
+    document.getElementById('modalInstructor').textContent = currentCertificate.instructor;
+    document.getElementById('modalVerificationCode').textContent = currentCertificate.verificationCode;
+    
+    const modal = new bootstrap.Modal(document.getElementById('certificateModal'));
+    modal.show();
+}
+
+function downloadCertificate(id) {
+    const cert = certificates.find(c => c.id === id);
+    showToast(`Baixando certificado: ${cert.name}`, 'info');
+}
+
+function downloadCurrentCertificate() {
+    if (currentCertificate) {
+        downloadCertificate(currentCertificate.id);
+    }
+}
+
+function downloadAllCertificates() {
+    showToast('Preparando download de todos os certificados...', 'info');
+    setTimeout(() => {
+        showToast('Todos os certificados foram baixados!', 'success');
+    }, 2000);
+}
+
+function shareCertificate(id) {
+    currentCertificate = certificates.find(cert => cert.id === id);
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function shareCurrentCertificate() {
+    if (currentCertificate) {
+        const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+        modal.show();
+    }
+}
+
+function shareCertificates() {
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function shareOnLinkedIn() {
+    const text = `Acabei de obter meu certificado em ${currentCertificate.name}! 🎓`;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+}
+
+function shareOnTwitter() {
+    const text = `Acabei de obter meu certificado em ${currentCertificate.name}! 🎓 #certificado #aprendizado`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank');
+}
+
+function shareOnWhatsApp() {
+    const text = `Acabei de obter meu certificado em ${currentCertificate.name}! 🎓 Confira: ${window.location.href}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+}
+
+function copyShareLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        showToast('Link copiado para a área de transferência!', 'success');
+    });
+}
+
+function copyVerificationCode() {
+    const code = document.getElementById('modalVerificationCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Código de verificação copiado!', 'success');
+    });
+}
+
+function hideLoading() {
+    document.getElementById('loadingState').classList.add('d-none');
+}
+
+// Add hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .certificate-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+        .certificate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}

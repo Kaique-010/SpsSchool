@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ video.title }} - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Início</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:modules_list' %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:module_detail' video.training.module.id %}">{{ video.training.module.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'courses:training_detail' video.training.id %}">{{ video.training.title }}</a></li>
+            <li class="breadcrumb-item active">{{ video.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Video Player Section -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <!-- Video Container -->
+                    <div class="video-container" id="videoContainer">
+                        {% if video.youtube_url %}
+                        <iframe id="youtubePlayer" 
+                                src="https://www.youtube.com/embed/{{ video.youtube_video_id }}?enablejsapi=1&rel=0&modestbranding=1"
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                        </iframe>
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center bg-light" style="height: 400px;">
+                            <div class="text-center">
+                                <i class="bi bi-camera-video-off text-muted" style="font-size: 4rem;"></i>
+                                <h5 class="text-muted mt-3">Vídeo não disponível</h5>
+                                <p class="text-muted">O link do vídeo não foi configurado ainda.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Progress Bar Overlay -->
+                        {% if user.is_authenticated %}
+                        <div class="video-progress" id="videoProgress" style="width: {{ progress_percentage|default:0 }}%;"></div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Video Controls -->
+                    <div class="p-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                {% if user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="markAsCompleted()">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Marcar como Concluído
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()">
+                                    <i class="bi bi-fullscreen me-1"></i>
+                                    Tela Cheia
+                                </button>
+                            </div>
+                            <div class="d-flex align-items-center text-muted">
+                                {% if video.duration_seconds %}
+                                <i class="bi bi-clock me-1"></i>
+                                <span>{% widthratio video.duration_seconds 60 1 %} min</span>
+                                {% endif %}
+                                {% if user.is_authenticated %}
+                                <span class="mx-2">•</span>
+                                <span id="progressText">{{ progress_percentage|default:0|floatformat:1 }}% assistido</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Information -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="me-3">
+                            {% if user.is_authenticated %}
+                                {% if is_completed %}
+                                    <i class="bi bi-check-circle-fill text-success fs-3"></i>
+                                {% elif progress_percentage > 0 %}
+                                    <i class="bi bi-play-circle-fill text-warning fs-3"></i>
+                                {% else %}
+                                    <i class="bi bi-play-circle text-muted fs-3"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-play-circle text-primary fs-3"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h1 class="h3 mb-2">{{ video.title }}</h1>
+                            <div class="d-flex align-items-center text-muted mb-2">
+                                <span>{{ video.order_index }}º vídeo</span>
+                                <span class="mx-2">•</span>
+                                <span>{{ video.training.title }}</span>
+                                <span class="mx-2">•</span>
+                                <span>{{ video.training.module.title }}</span>
+                            </div>
+                            {% if user.is_authenticated %}
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-{{ is_completed|yesno:'success,warning,secondary' }} me-2">
+                                    {% if is_completed %}
+                                        <i class="bi bi-check-circle-fill me-1"></i>Concluído
+                                    {% elif progress_percentage > 0 %}
+                                        <i class="bi bi-clock-fill me-1"></i>Em Progresso
+                                    {% else %}
+                                        <i class="bi bi-circle me-1"></i>Não Assistido
+                                    {% endif %}
+                                </span>
+                                {% if progress_percentage > 0 %}
+                                <small class="text-muted">
+                                    Última visualização: {{ last_watched|date:"d/m/Y H:i"|default:"Nunca" }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if video.description %}
+                    <div class="mb-3">
+                        <h6>Descrição</h6>
+                        <p class="text-muted">{{ video.description|linebreaks }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Video Stats -->
+                    <div class="row text-center border-top pt-3">
+                        <div class="col-md-3">
+                            <div class="h6 mb-0">{{ video.order_index }}</div>
+                            <small class="text-muted">Ordem no Treinamento</small>
+                        </div>
+                        {% if video.duration_seconds %}
+                        <div class="col-md-3">
+                            <div class="h6 mb-0">{% widthratio video.duration_seconds 60 1 %}</div>
+                            <small class="text-muted">Minutos</small>
+                        </div>
+                        {% endif %}
+                        {% if user.is_authenticated %}
+                        <div class="col-md-3">
+                            <div class="h6 mb-0">{{ progress_percentage|default:0|floatformat:1 }}%</div>
+                            <small class="text-muted">Progresso</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h6 mb-0">{{ watch_count|default:0 }}</div>
+                            <small class="text-muted">Visualizações</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Training Progress -->
+            {% if user.is_authenticated %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Progresso do Treinamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ video.training.title }}</span>
+                        <span class="text-muted">{{ training_progress|default:0|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress progress-bar-custom mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ training_progress|default:0 }}%"></div>
+                    </div>
+                    <small class="text-muted">
+                        {{ completed_videos }}/{{ total_videos }} vídeos concluídos
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Video Navigation -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-list-ol me-2"></i>
+                        Vídeos do Treinamento
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for v in training_videos %}
+                        <div class="list-group-item {% if v.id == video.id %}active{% endif %}">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    {% if user.is_authenticated %}
+                                        {% if v.is_completed %}
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                        {% elif v.progress_percentage > 0 %}
+                                            <i class="bi bi-play-circle-fill text-warning"></i>
+                                        {% else %}
+                                            <i class="bi bi-play-circle text-muted"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="bi bi-play-circle {% if v.id == video.id %}text-white{% else %}text-primary{% endif %}"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 {% if v.id == video.id %}text-white{% endif %}">
+                                                {{ v.order_index }}. {{ v.title|truncatechars:30 }}
+                                            </h6>
+                                            <small class="{% if v.id == video.id %}text-white-50{% else %}text-muted{% endif %}">
+                                                {% if v.duration_seconds %}
+                                                    {% widthratio v.duration_seconds 60 1 %} min
+                                                {% endif %}
+                                                {% if user.is_authenticated and v.progress_percentage > 0 %}
+                                                    • {{ v.progress_percentage|floatformat:1 }}%
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        {% if v.id != video.id %}
+                                        <a href="{% url 'core:video_detail' v.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-play"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if previous_video %}
+                        <a href="{% url 'core:video_detail' previous_video.id %}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Vídeo Anterior
+                        </a>
+                        {% endif %}
+                        
+                        {% if next_video %}
+                        <a href="{% url 'core:video_detail' next_video.id %}" 
+                           class="btn btn-primary">
+                            Próximo Vídeo
+                            <i class="bi bi-arrow-right ms-2"></i>
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'courses:training_detail' video.training.id %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-up me-2"></i>
+                            Voltar ao Treinamento
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let player;
+let progressUpdateInterval;
+let currentVideoId = {{ video.id }};
+let videoDuration = {{ video.duration_seconds|default:0 }};
+let isCompleted = {{ is_completed|yesno:"true,false" }};
+
+// YouTube API
+function onYouTubeIframeAPIReady() {
+    player = new YT.Player('youtubePlayer', {
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
+function onPlayerReady(event) {
+    console.log('YouTube player ready');
+    
+    // Get video duration if not set
+    if (videoDuration === 0) {
+        videoDuration = player.getDuration();
+    }
+    
+    // Resume from last position if user is authenticated
+    {% if user.is_authenticated and progress_seconds %}
+    const resumeTime = {{ progress_seconds|default:0 }};
+    if (resumeTime > 0 && !isCompleted) {
+        player.seekTo(resumeTime, true);
+        showToast('Continuando de onde você parou...', 'info');
+    }
+    {% endif %}
+}
+
+function onPlayerStateChange(event) {
+    if (event.data == YT.PlayerState.PLAYING) {
+        startProgressTracking();
+    } else {
+        stopProgressTracking();
+    }
+    
+    if (event.data == YT.PlayerState.ENDED) {
+        markAsCompleted();
+    }
+}
+
+function startProgressTracking() {
+    if (!progressUpdateInterval) {
+        progressUpdateInterval = setInterval(updateProgress, 5000); // Update every 5 seconds
+    }
+}
+
+function stopProgressTracking() {
+    if (progressUpdateInterval) {
+        clearInterval(progressUpdateInterval);
+        progressUpdateInterval = null;
+    }
+}
+
+function updateProgress() {
+    if (player && player.getCurrentTime) {
+        const currentTime = player.getCurrentTime();
+        const duration = player.getDuration() || videoDuration;
+        
+        if (duration > 0) {
+            const progressPercentage = (currentTime / duration) * 100;
+            
+            // Update UI
+            updateProgressUI(progressPercentage);
+            
+            // Send to server (authenticated users only)
+            {% if user.is_authenticated %}
+            if (currentTime > 0) {
+                updateVideoProgress(currentVideoId, currentTime, progressPercentage >= 90);
+            }
+            {% endif %}
+        }
+    }
+}
+
+function updateProgressUI(percentage) {
+    const progressBar = document.getElementById('videoProgress');
+    const progressText = document.getElementById('progressText');
+    
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
+    
+    if (progressText) {
+        progressText.textContent = percentage.toFixed(1) + '% assistido';
+    }
+}
+
+function markAsCompleted() {
+    {% if user.is_authenticated %}
+    if (!isCompleted) {
+        const currentTime = player ? player.getCurrentTime() : videoDuration;
+        updateVideoProgress(currentVideoId, currentTime, true);
+        isCompleted = true;
+        
+        // Update UI
+        showToast('Vídeo marcado como concluído!', 'success');
+        
+        // Update status badge
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    }
+    {% else %}
+    showToast('Faça login para salvar seu progresso', 'warning');
+    {% endif %}
+}
+
+function toggleFullscreen() {
+    const videoContainer = document.getElementById('videoContainer');
+    
+    if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+            console.log('Error attempting to enable fullscreen:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Load YouTube API
+if (!window.YT) {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    stopProgressTracking();
+    
+    // Save final progress
+    if (player && player.getCurrentTime) {
+        const currentTime = player.getCurrentTime();
+        if (currentTime > 0) {
+            navigator.sendBeacon(`/api/courses/videos/${currentVideoId}/progress/`, 
+                JSON.stringify({
+                    progress_seconds: currentTime,
+                    completed: false
+                })
+            );
+        }
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (player && document.activeElement.tagName !== 'INPUT') {
+        switch(e.code) {
+            case 'Space':
+                e.preventDefault();
+                if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                player.seekTo(player.getCurrentTime() - 10, true);
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                player.seekTo(player.getCurrentTime() + 10, true);
+                break;
+            case 'KeyF':
+                e.preventDefault();
+                toggleFullscreen();
+                break;
+            case 'KeyM':
+                e.preventDefault();
+                if (player.isMuted()) {
+                    player.unMute();
+                } else {
+                    player.mute();
+                }
+                break;
+        }
+    }
+});
+
+// Auto-advance to next video when completed
+{% if next_video and user.is_authenticated %}
+let autoAdvanceTimeout;
+
+function scheduleAutoAdvance() {
+    if (autoAdvanceTimeout) {
+        clearTimeout(autoAdvanceTimeout);
+    }
+    
+    autoAdvanceTimeout = setTimeout(() => {
+        if (confirm('Vídeo concluído! Deseja ir para o próximo vídeo?')) {
+            window.location.href = "{% url 'core:video_detail' next_video.id %}";
+        }
+    }, 3000);
+}
+
+// Override markAsCompleted to include auto-advance
+const originalMarkAsCompleted = markAsCompleted;
+markAsCompleted = function() {
+    originalMarkAsCompleted();
+    scheduleAutoAdvance();
+};
+{% endif %}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Show keyboard shortcuts help
+    showToast('Dica: Use Espaço para pausar/reproduzir, ← → para navegar, F para tela cheia', 'info');
+});
+</script>
+{% endblock %}

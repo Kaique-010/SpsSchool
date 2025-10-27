@@ -1,0 +1,576 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Perfil - SPS Training System{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'core:dashboard' %}">
+                    <i class="bi bi-house-door me-1"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Meu Perfil</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Profile Info Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <!-- Profile Picture -->
+                    <div class="position-relative d-inline-block mb-3">
+                        <div class="profile-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                             style="width: 120px; height: 120px; font-size: 3rem;">
+                            {% if user.first_name %}
+                                {{ user.first_name.0|upper }}{% if user.last_name %}{{ user.last_name.0|upper }}{% endif %}
+                            {% else %}
+                                {{ user.username.0|upper }}
+                            {% endif %}
+                        </div>
+                        <button class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0"
+                                style="width: 35px; height: 35px;" onclick="changeProfilePicture()">
+                            <i class="bi bi-camera"></i>
+                        </button>
+                    </div>
+
+                    <!-- User Info -->
+                    <h4 class="mb-1">
+                        {% if user.first_name %}
+                            {{ user.first_name }} {{ user.last_name }}
+                        {% else %}
+                            {{ user.username }}
+                        {% endif %}
+                    </h4>
+                    <p class="text-muted mb-2">{{ user.email }}</p>
+                    <span class="badge bg-primary mb-3">
+                        {% if user.is_superuser %}
+                            Administrador
+                        {% elif user.is_staff %}
+                            Instrutor
+                        {% else %}
+                            Estudante
+                        {% endif %}
+                    </span>
+
+                    <!-- Quick Stats -->
+                    <div class="row text-center mt-3">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h5 class="mb-0 text-primary" id="completedTrainings">0</h5>
+                                <small class="text-muted">Treinamentos</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h5 class="mb-0 text-success" id="certificates">0</h5>
+                                <small class="text-muted">Certificados</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0 text-info" id="totalHours">0h</h5>
+                            <small class="text-muted">Horas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-transparent border-0">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="downloadCertificates()">
+                            <i class="bi bi-download me-2"></i>
+                            Baixar Certificados
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="exportProgress()">
+                            <i class="bi bi-file-earmark-text me-2"></i>
+                            Exportar Progresso
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="changePassword()">
+                            <i class="bi bi-key me-2"></i>
+                            Alterar Senha
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="col-lg-8">
+            <!-- Personal Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-person me-2"></i>
+                        Informações Pessoais
+                    </h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editProfile()">
+                        <i class="bi bi-pencil me-1"></i>
+                        Editar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nome</label>
+                                <input type="text" class="form-control" id="firstName" 
+                                       value="{{ user.first_name }}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Sobrenome</label>
+                                <input type="text" class="form-control" id="lastName" 
+                                       value="{{ user.last_name }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" 
+                                       value="{{ user.email }}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Usuário</label>
+                                <input type="text" class="form-control" id="username" 
+                                       value="{{ user.username }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data de Cadastro</label>
+                                <input type="text" class="form-control" 
+                                       value="{{ user.date_joined|date:'d/m/Y H:i' }}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Último Acesso</label>
+                                <input type="text" class="form-control" 
+                                       value="{{ user.last_login|date:'d/m/Y H:i'|default:'Nunca' }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- Edit Mode Buttons -->
+                        <div class="edit-buttons d-none">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-check-lg me-1"></i>
+                                Salvar Alterações
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelEdit()">
+                                <i class="bi bi-x-lg me-1"></i>
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                    <h6 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Visão Geral do Progresso
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Progresso Geral</span>
+                                <span class="text-primary fw-bold" id="overallProgressText">0%</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" id="overallProgressBar" 
+                                     style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Módulos Concluídos</span>
+                                <span class="text-success fw-bold" id="modulesCompletedText">0/0</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" id="modulesCompletedBar" 
+                                     style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <h6 class="mt-4 mb-3">Atividade Recente</h6>
+                    <div class="activity-list" id="recentActivity">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificates -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-award me-2"></i>
+                        Meus Certificados
+                    </h6>
+                    <button class="btn btn-sm btn-outline-success" onclick="viewAllCertificates()">
+                        <i class="bi bi-eye me-1"></i>
+                        Ver Todos
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="certificatesList">
+                        <!-- Certificates will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-key me-2"></i>
+                    Alterar Senha
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Senha Atual</label>
+                        <input type="password" class="form-control" id="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" id="newPassword" required>
+                        <div class="form-text">
+                            A senha deve ter pelo menos 8 caracteres.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitPasswordChange()">
+                    <i class="bi bi-check-lg me-1"></i>
+                    Alterar Senha
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Picture Modal -->
+<div class="modal fade" id="profilePictureModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-camera me-2"></i>
+                    Alterar Foto do Perfil
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-3">
+                    Escolha uma nova foto para seu perfil
+                </p>
+                <input type="file" id="profilePictureInput" accept="image/*" class="d-none">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="document.getElementById('profilePictureInput').click()">
+                        <i class="bi bi-upload me-2"></i>
+                        Escolher Arquivo
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="removeProfilePicture()">
+                        <i class="bi bi-trash me-2"></i>
+                        Remover Foto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserStats();
+    loadRecentActivity();
+    loadCertificates();
+});
+
+function loadUserStats() {
+    // Simulate loading user statistics
+    setTimeout(() => {
+        document.getElementById('completedTrainings').textContent = '12';
+        document.getElementById('certificates').textContent = '8';
+        document.getElementById('totalHours').textContent = '45h';
+        
+        // Update progress bars
+        updateProgressBar('overallProgressBar', 'overallProgressText', 75);
+        updateProgressBar('modulesCompletedBar', 'modulesCompletedText', 60, '6/10');
+    }, 500);
+}
+
+function updateProgressBar(barId, textId, percentage, customText = null) {
+    const bar = document.getElementById(barId);
+    const text = document.getElementById(textId);
+    
+    bar.style.width = percentage + '%';
+    if (customText) {
+        text.textContent = customText;
+    } else {
+        text.textContent = percentage + '%';
+    }
+}
+
+function loadRecentActivity() {
+    const activityContainer = document.getElementById('recentActivity');
+    
+    const activities = [
+        {
+            icon: 'bi-play-circle',
+            text: 'Concluiu o vídeo "Introdução ao Django"',
+            time: '2 horas atrás',
+            color: 'success'
+        },
+        {
+            icon: 'bi-award',
+            text: 'Obteve certificado em "Python Básico"',
+            time: '1 dia atrás',
+            color: 'warning'
+        },
+        {
+            icon: 'bi-book',
+            text: 'Iniciou o módulo "Desenvolvimento Web"',
+            time: '3 dias atrás',
+            color: 'info'
+        }
+    ];
+    
+    activityContainer.innerHTML = activities.map(activity => `
+        <div class="d-flex align-items-center mb-3">
+            <div class="flex-shrink-0">
+                <div class="rounded-circle bg-${activity.color} bg-opacity-10 p-2">
+                    <i class="bi ${activity.icon} text-${activity.color}"></i>
+                </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                <div class="fw-medium">${activity.text}</div>
+                <small class="text-muted">${activity.time}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadCertificates() {
+    const certificatesContainer = document.getElementById('certificatesList');
+    
+    const certificates = [
+        {
+            title: 'Python Básico',
+            date: '15/12/2024',
+            image: 'https://via.placeholder.com/200x150/007bff/ffffff?text=Python'
+        },
+        {
+            title: 'Django Framework',
+            date: '10/12/2024',
+            image: 'https://via.placeholder.com/200x150/28a745/ffffff?text=Django'
+        }
+    ];
+    
+    certificatesContainer.innerHTML = certificates.map(cert => `
+        <div class="col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <img src="${cert.image}" class="card-img-top" alt="${cert.title}">
+                <div class="card-body text-center">
+                    <h6 class="card-title">${cert.title}</h6>
+                    <small class="text-muted">${cert.date}</small>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadCertificate('${cert.title}')">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="shareCertificate('${cert.title}')">
+                            <i class="bi bi-share"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function editProfile() {
+    const form = document.getElementById('profileForm');
+    const inputs = form.querySelectorAll('input:not([readonly])');
+    const readonlyInputs = form.querySelectorAll('input[readonly]');
+    const editButtons = form.querySelector('.edit-buttons');
+    
+    // Make fields editable (except username and dates)
+    readonlyInputs.forEach(input => {
+        if (!['username', 'date_joined', 'last_login'].some(field => input.id.includes(field))) {
+            input.removeAttribute('readonly');
+            input.classList.add('border-primary');
+        }
+    });
+    
+    editButtons.classList.remove('d-none');
+}
+
+function cancelEdit() {
+    const form = document.getElementById('profileForm');
+    const inputs = form.querySelectorAll('input');
+    const editButtons = form.querySelector('.edit-buttons');
+    
+    // Reset form and make fields readonly again
+    form.reset();
+    inputs.forEach(input => {
+        input.setAttribute('readonly', true);
+        input.classList.remove('border-primary');
+    });
+    
+    editButtons.classList.add('d-none');
+}
+
+function changePassword() {
+    const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+    modal.show();
+}
+
+function submitPasswordChange() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showToast('Por favor, preencha todos os campos', 'warning');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showToast('As senhas não coincidem', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        showToast('A senha deve ter pelo menos 8 caracteres', 'warning');
+        return;
+    }
+    
+    // Simulate password change
+    showToast('Senha alterada com sucesso!', 'success');
+    
+    // Close modal and reset form
+    const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+    modal.hide();
+    document.getElementById('changePasswordForm').reset();
+}
+
+function changeProfilePicture() {
+    const modal = new bootstrap.Modal(document.getElementById('profilePictureModal'));
+    modal.show();
+}
+
+function removeProfilePicture() {
+    showToast('Foto do perfil removida', 'info');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('profilePictureModal'));
+    modal.hide();
+}
+
+function downloadCertificates() {
+    showToast('Preparando download dos certificados...', 'info');
+    // Simulate download
+    setTimeout(() => {
+        showToast('Certificados baixados com sucesso!', 'success');
+    }, 2000);
+}
+
+function exportProgress() {
+    showToast('Exportando relatório de progresso...', 'info');
+    // Simulate export
+    setTimeout(() => {
+        showToast('Relatório exportado com sucesso!', 'success');
+    }, 2000);
+}
+
+function downloadCertificate(title) {
+    showToast(`Baixando certificado: ${title}`, 'info');
+}
+
+function shareCertificate(title) {
+    if (navigator.share) {
+        navigator.share({
+            title: `Certificado - ${title}`,
+            text: `Acabei de obter meu certificado em ${title}!`,
+            url: window.location.href
+        });
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Link copiado para a área de transferência!', 'success');
+        });
+    }
+}
+
+function viewAllCertificates() {
+    // Navigate to certificates page
+    window.location.href = '{% url "core:certificates" %}';
+}
+
+// Profile picture upload handling
+document.getElementById('profilePictureInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showToast('Por favor, selecione um arquivo de imagem', 'warning');
+            return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('A imagem deve ter no máximo 5MB', 'warning');
+            return;
+        }
+        
+        showToast('Foto do perfil atualizada!', 'success');
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('profilePictureModal'));
+        modal.hide();
+    }
+});
+
+// Form submission handling
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Simulate form submission
+    showToast('Perfil atualizado com sucesso!', 'success');
+    cancelEdit();
+});
+</script>
+{% endblock %}
